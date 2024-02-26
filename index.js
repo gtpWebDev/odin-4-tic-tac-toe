@@ -16,7 +16,7 @@ console.log("Test")
 
 /*
 
-  STEP 1: COLlECT 2 PLAYERS
+  STEP 1: COLLECT 2 PLAYERS
 
   STEP 2: ASSIGN X AND O TO PLAYERS. X ALWAYS STARTS
 
@@ -28,13 +28,11 @@ console.log("Test")
 
   END GAME WHEN WON
 
-
-
   STEP 3: WIN - COMMUNICATE IT, ETC.
 
 */
 
-// IIFE module pattern
+// Invokes a single instance of a gameboard object immediately
 const gameboard = (function() {
 
   const state = []
@@ -51,6 +49,22 @@ const gameboard = (function() {
 
 })()
 
+// Factory function to set up people, who will be a pool of people that will potential any individual game
+const createPerson = function(name) {
+
+  let nickname = ""
+  let totalWins = 0
+  function addNickname(newName) {
+    nickname = newName
+  } 
+  const getNickname = () => nickname
+  const addWin = () => totalWins++
+  const getWins = () => totalWins
+
+  return { name, getNickname, addNickname, addWin, getWins }
+
+}
+
 
 gameboard.reset()
 
@@ -60,4 +74,11 @@ gameboard.update(4,1)
 
 //gameboard.reset()
 console.table(gameboard.state)
+
+const glen = createPerson("Glen")
+glen.addNickname("The Bulldozer")
+glen.addWin()
+glen.addWin()
+console.log(`${glen.name}, otherwise known as ${glen.getNickname()}, has won ${glen.getWins()} games.`)
+
 
