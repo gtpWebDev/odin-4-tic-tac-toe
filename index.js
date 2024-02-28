@@ -21,19 +21,39 @@ const gameboard = (function() {
 })()
 
 
-// Immediately invoked function expression (IIFE) - invokes a single instance of a gameboard display object with functionality to draw, reset and update the board
-const gameboardDisplay = (function() {
+// Immediately invoked function expression (IIFE) - invokes a single instance of a displayController object which will manage all aspects of the UI functionality, including the board
+const displayController = (function() {
 
   const drawBoard = () => {
     let boardArray = gameboard.getFullBoard()
+    let boardDisplay = document.querySelector("#gameboard")
+    boardDisplay.innerHTML = '';
     boardArray.forEach( (element, index) => {
-      let boardDisplay = document.querySelector("#gameboard")
       let gameCell = document.createElement("div")
-      gameCell.setAttribute("class",`game-cell`)
-      gameCell.setAttribute("id",`game-cell-${index}`)
+      gameCell.setAttribute("class",`game-cell`);
+      gameCell.setAttribute("id",`game-cell-${index}`);
+      gameCell.addEventListener("click",() => processPlayerSelection(index));
       boardDisplay.appendChild(gameCell)
     })
   }
+
+  const highlightCurrentPlayer = (player) => {
+    let player1Display = document.querySelector("#player-1-name")
+    let player2Display = document.querySelector("#player-2-name")
+    if (player === "Player 1") {
+      player1Display.setAttribute("class","highlighted-player-name")
+      player2Display.setAttribute("class","not-highlighted-player-name")
+    } else if (player === "Player 2") {
+      player1Display.setAttribute("class","not-highlighted-player-name")
+      player2Display.setAttribute("class","highlighted-player-name")
+
+    }
+  }
+
+  // const drawPlayerMarks = () => {
+  //   let player1Mark = document.querySelector("#player-1-mark")
+  //   let player2Mark = document.querySelector("#player-2-mark")
+  // }
 
   const resetDisplay = () => {
     let boardArray = gameboard.getFullBoard()
@@ -41,7 +61,6 @@ const gameboardDisplay = (function() {
       let gameCell = document.querySelector(`#game-cell-${index}`);
       gameCell.textContent = "";
     })
-
   }
 
   const updatePositionDisplay = ( position, updateTo ) => {
@@ -49,37 +68,42 @@ const gameboardDisplay = (function() {
     gameCell.textContent = updateTo
   }
 
-  return { drawBoard, resetDisplay, updatePositionDisplay }
+  const updateMessageBoard = (text) => {
+    let messageBoard = document.querySelector("#message-board");
+    messageBoard.textContent = text;
+  }
+
+  return { drawBoard, resetDisplay, updatePositionDisplay, updateMessageBoard, highlightCurrentPlayer }
 
 })()
 
 
-// Factory function to create "person" objects, who will be eligible to play games
+// Factory function to create "player" objects
 const createPerson = function (name) {
 
-  // private variables, intentionally only accessible through factory function functions
-  let nickname = "bum"
+  // the player functionality is not currently used other than to create a player.
+  let nickname = ""
   let totalWins = 0
-
+  
   const addNickname = (newName) => { nickname = newName }
   const getNickname = () => nickname
 
   const getWins = () => totalWins
   const addWin = () => totalWins++
   
-  return { name, getNickname, addNickname, getWins, addWin }
+  return { name, getNickname, getWins, addWin }
 
 }
 
 
-const createGame = function(gameboard, gameboardDisplay, player1, player2) {
+const createGame = function(player1, player2) {
   
   let xPlayer
   let oPlayer
   let activePlayer
   let activeMark // X or O
   let gameWinner = "None"
-  let gameActive = false // whether game is active or not
+  let gameActive = false
 
   // internal function
   function checkMatch(value, pos1, pos2, pos3) {
@@ -102,15 +126,15 @@ const createGame = function(gameboard, gameboardDisplay, player1, player2) {
     activeMark = "X";
     gameActive = true;
     gameboard.reset()
-    gameboardDisplay.drawBoard()
-    gameboardDisplay.resetDisplay()
+    displayController.drawBoard()
+    displayController.resetDisplay()
   }
 
-  const checkPlayerSelection = (chosenPosition) => gameboard.getPosition(chosenPosition) === "" ? true : false
+  const playerSelectionValid = (chosenPosition) => gameboard.getPosition(chosenPosition) === "" ? true : false
 
   const addPlayerSelection = (boardPosition, activeMark) => {
     gameboard.updatePosition(boardPosition,activeMark)
-    gameboardDisplay.updatePositionDisplay(boardPosition,activeMark)
+    displayController.updatePositionDisplay(boardPosition,activeMark)
   } 
 
   const checkGameStatus = () => {
@@ -132,10 +156,10 @@ const createGame = function(gameboard, gameboardDisplay, player1, player2) {
   const swapPlayer = () => {
     if (activeMark === "X") {
       activeMark = "O";
-      activePlayer = xPlayer;
+      activePlayer = oPlayer;
     } else {
       activeMark = "X";
-      activePlayer = oPlayer;
+      activePlayer = xPlayer;
     }
   }
 
@@ -158,80 +182,97 @@ const createGame = function(gameboard, gameboardDisplay, player1, player2) {
   const getOPlayer = () => oPlayer;
   const getActivePlayer = () => activePlayer;  
   const getActiveMark = () => activeMark;  
-  const getGameActive = () => gameActive;
+  const isActive = () => gameActive;
   const getGameWinner = () => gameWinner;
   
-  return { player1, player2, initialiseGame, getXPlayer, getOPlayer, getActiveMark, getActivePlayer, checkPlayerSelection, addPlayerSelection, checkGameStatus, swapPlayer, getGameActive, endGame, getGameWinner }
+  return { player1, player2, initialiseGame, getXPlayer, getOPlayer, getActiveMark, getActivePlayer, playerSelectionValid, addPlayerSelection, checkGameStatus, swapPlayer, isActive, endGame, getGameWinner }
 
 }
 
 
 
 
-// CONSOLE GAME TESTING
 
-// stage 0 - CREATE PLAYERS - create players who are eligible to play
+// add general UI event listeners
 
-const glen = createPerson("Glen"); glen.addNickname("The Bulldozer")
-console.log(`${glen.name}, otherwise known as ${glen.getNickname()}, is eligible to play, and has won ${glen.getWins()} games.`)
+//let createPlayer1Button = document.querySelector("#create-player-1")
+//createPlayer1Button.addEventListener("click", createPlayerOne)
 
-const joe = createPerson("Joe"); joe.addNickname("Old Hopeless")
-console.log(`${joe.name}, otherwise known as ${joe.getNickname()}, is eligible to play, and has won ${joe.getWins()} games.`)
+//let createPlayer2Button = document.querySelector("#create-player-2")
+//createPlayer2Button.addEventListener("click", createPlayerTwo)
 
-
-// stage 1 - GAME PREPARATION - create the game with two players, reset game board, allocate X and O to the two players. (X always goes first).
-let activeGame = createGame(gameboard, gameboardDisplay, glen, joe)
-activeGame.initialiseGame()
-console.log(`Game has been initialised. ${activeGame.getXPlayer().name} will play X. ${activeGame.getOPlayer().name} will play O. ${activeGame.getActivePlayer().name} will start.`)
+let startGameButton = document.querySelector("#start-game")
+startGameButton.addEventListener("click", startGame)
 
 
+// game functions for event listeners - may relocate these into factory functions
 
+let player1;
+let player2;
+let currentGame;
 
+createPlayerOne()
+createPlayerTwo()
 
+function createPlayerOne() {
+  player1 = createPerson("Player 1")
+}
 
-// stage 2 - REPEATED GAME TURN:
-while ( activeGame.getGameActive() ) {
+function createPlayerTwo() {
+  player2 = createPerson("Player 2")
+}
 
-  // stage 2A - CHECK PLAYER SELECTION
-  let chosenPosition
-  do {
-    chosenPosition = Math.floor(Math.random()*8.99)
-  } while ( !activeGame.checkPlayerSelection(chosenPosition) )
+function startGame() {
 
-  // stage 2b - PROCESS PLAYER SELECTION
-  activeGame.addPlayerSelection(chosenPosition,activeGame.getActiveMark())
+  // Create a game instance, allocate players to X and O (X always first), reset gameboard array, and draw game board.
 
-  //boardDisplay.updatePositionDisplay(chosenPosition,activeGame.getActiveMark())
+  currentGame = createGame(player1, player2)
+  currentGame.initialiseGame()
+  let updateText = `Ready to play! ${currentGame.getXPlayer().name} will play X. ${currentGame.getOPlayer().name} will play O. ${currentGame.getActivePlayer().name} will start.`
+  displayController.highlightCurrentPlayer(currentGame.getActivePlayer().name)
+  displayController.updateMessageBoard(updateText)
+  
+}
 
-  //gameboard.updatePosition(chosenPosition,activeGame.getActiveMark())
-  //console.log(`${activeGame.getActiveMark()} takes position ${chosenPosition}`)
-  //console.table(gameboard.state)
-  //console.log(`Current game status is ${gameboard.gameStatus()}`)
+function processPlayerSelection(chosenPosition) {
 
-  // stage 2c - CHECK IF GAME IS OVER
-  if (activeGame.checkGameStatus() === "xWin" || activeGame.checkGameStatus() === "oWin" || activeGame.checkGameStatus() === "tie") {
+  if (currentGame.isActive()) {
 
-    // if game over, end game
-    activeGame.endGame(activeGame.checkGameStatus())  
+    if (currentGame.playerSelectionValid(chosenPosition)) {
+
+      currentGame.addPlayerSelection(chosenPosition,currentGame.getActiveMark())
+
+      let gameState = currentGame.checkGameStatus()
+
+      if (gameState === "ongoing") {
+
+        currentGame.swapPlayer()
+        displayController.highlightCurrentPlayer(currentGame.getActivePlayer().name)
+        displayController.updateMessageBoard(`${currentGame.getActivePlayer().name}'s turn.`)
+
+      } else {
+
+        currentGame.endGame(gameState)  
+
+        if (currentGame.checkGameStatus() === "xWin" || currentGame.checkGameStatus() === "oWin") {
+          displayController.updateMessageBoard(`${currentGame.getGameWinner().name} has won!`)  
+        } else if (currentGame.checkGameStatus() === "tie") {
+          displayController.updateMessageBoard(`The game has ended in a tie!`)  
+        }
+
+      }
+
+    } else {
+
+      displayController.updateMessageBoard(`This position has already been chosen, please try again.`)
+
+    }
 
   } else {
 
-    // if game not over, swap player and continue
-    activeGame.swapPlayer()
+    displayController.updateMessageBoard(`This game is over, start a new game!`)
 
   }
 
-    // PROCESS ROUND END
-
-}
-
-// stage 3 - communicate game result and add wins to player if appropriate
-
-console.log(`Game result is ${activeGame.checkGameStatus()}`)
-
-if (activeGame.checkGameStatus() === "xWin" || activeGame.checkGameStatus() === "oWin") {
-  let gameWinner = activeGame.getGameWinner()
-  gameWinner.addWin()
-  console.log(`Win added for ${activeGame.getGameWinner().name}`)
 }
 
