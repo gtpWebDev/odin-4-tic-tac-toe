@@ -6,15 +6,6 @@ const gameboard = (function() {
 
   const getPosition = (position) => boardArray[position]
 
-  // internal function
-  // function checkMatch(value, pos1, pos2, pos3) {
-  //   if (boardArray[pos1] === value && boardArray[pos2] === value && boardArray[pos3] === value) {
-  //     return true
-  //   } else {
-  //     return false
-  //   }
-  // }
-
   const reset = () => {
     for (let i = 0; i < 9; i++) {
       boardArray[i] = ""
@@ -23,25 +14,42 @@ const gameboard = (function() {
 
   const updatePosition = ( position, updateTo ) => { boardArray[position] = updateTo }
 
-  // const gameStatus = () => {
-  //   if ( checkMatch("X",0,1,2) || checkMatch("X",3,4,5) || checkMatch("X",6,7,8) || checkMatch("X",0,3,6) ||
-  //        checkMatch("X",1,4,7) || checkMatch("X",2,5,8) || checkMatch("X",0,4,8) || checkMatch("X",2,4,6)
-  //   ) {
-  //     return "xWin";
-  //   } else if ( checkMatch("O",0,1,2) || checkMatch("O",3,4,5) || checkMatch("O",6,7,8) || checkMatch("O",0,3,6) ||
-  //               checkMatch("O",1,4,7) || checkMatch("O",2,5,8) || checkMatch("O",0,4,8) || checkMatch("O",2,4,6)
-  //   ) {
-  //     return "oWin"
-  //   } else if (!boardArray.includes("")) {
-  //     return "tie"
-  //   } else {
-  //     return "ongoing"
-  //   }
-  // }
-
   const getFullBoard = () => boardArray
 
   return { reset, getPosition, updatePosition, getFullBoard }
+
+})()
+
+
+// Immediately invoked function expression (IIFE) - invokes a single instance of a gameboard display object with functionality to draw, reset and update the board
+const gameboardDisplay = (function() {
+
+  const drawBoard = () => {
+    let boardArray = gameboard.getFullBoard()
+    boardArray.forEach( (element, index) => {
+      let boardDisplay = document.querySelector("#gameboard")
+      let gameCell = document.createElement("div")
+      gameCell.setAttribute("class",`game-cell`)
+      gameCell.setAttribute("id",`game-cell-${index}`)
+      boardDisplay.appendChild(gameCell)
+    })
+  }
+
+  const resetDisplay = () => {
+    let boardArray = gameboard.getFullBoard()
+    boardArray.forEach( (element, index) => {
+      let gameCell = document.querySelector(`#game-cell-${index}`);
+      gameCell.textContent = "";
+    })
+
+  }
+
+  const updatePositionDisplay = ( position, updateTo ) => {
+    let gameCell = document.querySelector(`#game-cell-${position}`)
+    gameCell.textContent = updateTo
+  }
+
+  return { drawBoard, resetDisplay, updatePositionDisplay }
 
 })()
 
@@ -64,7 +72,7 @@ const createPerson = function (name) {
 }
 
 
-const createGame = function(gameboard, player1, player2) {
+const createGame = function(gameboard, gameboardDisplay, player1, player2) {
   
   let xPlayer
   let oPlayer
@@ -94,11 +102,16 @@ const createGame = function(gameboard, player1, player2) {
     activeMark = "X";
     gameActive = true;
     gameboard.reset()
+    gameboardDisplay.drawBoard()
+    gameboardDisplay.resetDisplay()
   }
 
   const checkPlayerSelection = (chosenPosition) => gameboard.getPosition(chosenPosition) === "" ? true : false
 
-  const addPlayerSelection = (boardPosition, activeMark) => gameboard.updatePosition(boardPosition,activeMark)
+  const addPlayerSelection = (boardPosition, activeMark) => {
+    gameboard.updatePosition(boardPosition,activeMark)
+    gameboardDisplay.updatePositionDisplay(boardPosition,activeMark)
+  } 
 
   const checkGameStatus = () => {
     if ( checkMatch("X",0,1,2) || checkMatch("X",3,4,5) || checkMatch("X",6,7,8) || checkMatch("X",0,3,6) ||
@@ -115,7 +128,6 @@ const createGame = function(gameboard, player1, player2) {
       return "ongoing"
     }
   }
-
 
   const swapPlayer = () => {
     if (activeMark === "X") {
@@ -154,6 +166,8 @@ const createGame = function(gameboard, player1, player2) {
 }
 
 
+
+
 // CONSOLE GAME TESTING
 
 // stage 0 - CREATE PLAYERS - create players who are eligible to play
@@ -166,30 +180,35 @@ console.log(`${joe.name}, otherwise known as ${joe.getNickname()}, is eligible t
 
 
 // stage 1 - GAME PREPARATION - create the game with two players, reset game board, allocate X and O to the two players. (X always goes first).
-let activeGame = createGame(gameboard, glen, joe)
+let activeGame = createGame(gameboard, gameboardDisplay, glen, joe)
 activeGame.initialiseGame()
 console.log(`Game has been initialised. ${activeGame.getXPlayer().name} will play X. ${activeGame.getOPlayer().name} will play O. ${activeGame.getActivePlayer().name} will start.`)
+
+
+
+
+
 
 // stage 2 - REPEATED GAME TURN:
 while ( activeGame.getGameActive() ) {
 
-  // CHECK PLAYER SELECTION
+  // stage 2A - CHECK PLAYER SELECTION
   let chosenPosition
   do {
     chosenPosition = Math.floor(Math.random()*8.99)
   } while ( !activeGame.checkPlayerSelection(chosenPosition) )
 
-  // PROCESS PLAYER SELECTION
+  // stage 2b - PROCESS PLAYER SELECTION
   activeGame.addPlayerSelection(chosenPosition,activeGame.getActiveMark())
+
+  //boardDisplay.updatePositionDisplay(chosenPosition,activeGame.getActiveMark())
 
   //gameboard.updatePosition(chosenPosition,activeGame.getActiveMark())
   //console.log(`${activeGame.getActiveMark()} takes position ${chosenPosition}`)
   //console.table(gameboard.state)
   //console.log(`Current game status is ${gameboard.gameStatus()}`)
 
-
-
-  // stage 2c - check whether game over or not
+  // stage 2c - CHECK IF GAME IS OVER
   if (activeGame.checkGameStatus() === "xWin" || activeGame.checkGameStatus() === "oWin" || activeGame.checkGameStatus() === "tie") {
 
     // if game over, end game
